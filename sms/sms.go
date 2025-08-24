@@ -8,8 +8,11 @@ import (
 	"net/http"
 )
 
-type SMSSender struct {
-	conf Config
+type Sender struct {
+	endpoint   string
+	apiKey     string
+	apiSecret  string
+	httpClient *http.Client
 }
 
 type Request struct {
@@ -26,13 +29,13 @@ type Response struct {
 	Status string `json:"status"`
 }
 
-func (s *SMSSender) SendSMS(ctx context.Context, req *Request) (*Response, error) {
+func (s *Sender) SendSMS(ctx context.Context, req *Request) (*Response, error) {
 	reqBody := map[string]string{
 		"to":        req.To,
 		"from":      req.From,
 		"text":      req.Message,
-		"apiKey":    s.conf.APIKey,
-		"apiSecret": s.conf.APISecret,
+		"apiKey":    s.apiKey,
+		"apiSecret": s.apiSecret,
 	}
 
 	jsonReqBody, err := json.Marshal(reqBody)
@@ -40,14 +43,14 @@ func (s *SMSSender) SendSMS(ctx context.Context, req *Request) (*Response, error
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, s.conf.Endpoint+"/sms", bytes.NewReader(jsonReqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, s.endpoint+"/sms", bytes.NewReader(jsonReqBody))
 	if err != nil {
 		return nil, err
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	httpResp, err := http.DefaultClient.Do(httpReq)
+	httpResp, err := s.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +67,21 @@ func (s *SMSSender) SendSMS(ctx context.Context, req *Request) (*Response, error
 }
 
 type Config struct {
-	Endpoint  string
-	APIKey    string
-	APISecret string
+	Endpoint   string
+	APIKey     string
+	APISecret  string
+	HTTPClient *http.Client
 }
 
-func NewSMSSender(conf Config) *SMSSender {
-	return &SMSSender{
-		conf: conf,
+func NewSender(conf Config) *Sender {
+	if conf.HTTPClient == nil {
+		conf.HTTPClient = http.DefaultClient
+	}
+
+	return &Sender{
+		endpoint:   conf.Endpoint,
+		apiKey:     conf.APIKey,
+		apiSecret:  conf.APISecret,
+		httpClient: conf.HTTPClient,
 	}
 }

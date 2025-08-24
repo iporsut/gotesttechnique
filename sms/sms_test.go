@@ -27,10 +27,11 @@ func TestSMSSender_SendSMS_Success(t *testing.T) {
 	server := smsTestServer()
 	defer server.Close()
 
-	smsSender := NewSMSSender(Config{
-		Endpoint:  server.URL,
-		APIKey:    "test-api",
-		APISecret: "test-secret",
+	smsSender := NewSender(Config{
+		Endpoint:   server.URL,
+		APIKey:     "test-api",
+		APISecret:  "test-secret",
+		HTTPClient: server.Client(),
 	})
 
 	resp, err := smsSender.SendSMS(context.Background(), &Request{
