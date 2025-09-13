@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"testing"
 
@@ -22,7 +21,7 @@ func migrateUp(db *sql.DB) error {
 }
 
 func TestRepoSave(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	postgresContainer, err := postgres.Run(ctx,
 		"postgres:16-alpine",
 		postgres.WithDatabase("test"),
