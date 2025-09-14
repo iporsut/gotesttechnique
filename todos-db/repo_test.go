@@ -20,7 +20,7 @@ func migrateUp(db *sql.DB) error {
 	return goose.Up(db, "./migrations")
 }
 
-func TestRepoSave(t *testing.T) {
+func TestRepoCreate(t *testing.T) {
 	ctx := t.Context()
 	postgresContainer, err := postgres.Run(ctx,
 		"postgres:16-alpine",
@@ -29,6 +29,7 @@ func TestRepoSave(t *testing.T) {
 		postgres.WithPassword("password"),
 		postgres.BasicWaitStrategies(),
 	)
+	require.NoError(t, err)
 
 	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
 	require.NoError(t, err)
@@ -48,4 +49,37 @@ func TestRepoSave(t *testing.T) {
 	assert.NotZero(t, savedTodo.ID)
 	assert.Equal(t, "Test Todo", savedTodo.Title)
 	assert.False(t, savedTodo.Completed)
+}
+
+func TestRepoGetAll(t *testing.T) {
+	ctx := t.Context()
+	postgresContainer, err := postgres.Run(ctx,
+		"postgres:16-alpine",
+		postgres.WithDatabase("test"),
+		postgres.WithUsername("user"),
+		postgres.WithPassword("password"),
+		postgres.BasicWaitStrategies(),
+	)
+	require.NoError(t, err)
+
+	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
+	require.NoError(t, err)
+
+	db, err := sql.Open("postgres", connStr)
+	require.NoError(t, err)
+	defer db.Close()
+
+	err = migrateUp(db)
+	require.NoError(t, err)
+
+	repo := NewTodoRepo(db)
+	_, err = repo.Create(&Todo{Title: "Test Todo 1", Completed: false})
+	require.NoError(t, err)
+	_, err = repo.Create(&Todo{Title: "Test Todo 2", Completed: true})
+	require.NoError(t, err)
+
+	todos, err := repo.GetAll()
+	require.NoError(t, err)
+
+	assert.Len(t, todos, 2)
 }

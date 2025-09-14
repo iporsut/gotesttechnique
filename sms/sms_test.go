@@ -2,6 +2,7 @@ package sms
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 func smsTestServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Received request:", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		w.Write([]byte(`{
@@ -24,11 +26,11 @@ func smsTestServer() *httptest.Server {
 }
 
 func TestSMSSender_SendSMS_Success(t *testing.T) {
-	server := smsTestServer()
+	server := smsTestServer() // สร้าง test server
 	defer server.Close()
 
 	smsSender := NewSender(Config{
-		Endpoint:   server.URL,
+		Endpoint:   server.URL, // test server endpoint
 		APIKey:     "test-api",
 		APISecret:  "test-secret",
 		HTTPClient: server.Client(),
@@ -48,6 +50,6 @@ func TestSMSSender_SendSMS_Success(t *testing.T) {
 		Status: "ACCEPTED",
 	}
 
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResp, resp)
+	assert.NoError(t, err, "expected no error")
+	assert.Equal(t, expectedResp, resp, "expected response to match")
 }

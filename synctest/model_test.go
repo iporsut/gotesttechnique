@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -16,15 +17,29 @@ func TestTodoMarkCompleted(t *testing.T) {
 		todo.MarkComplete()
 		time.Sleep(5 * time.Second)
 		now := time.Now()
+		fmt.Println("now:", now)
 		assert.True(t, todo.Completed)
 		assert.NotNil(t, todo.CompletedAt)
-		assert.Equal(t, now, *todo.CompletedAt)
+		assert.Equal(t, now, todo.CompletedAt.Add(5*time.Second))
 	})
+
+	synctest.Test(t, func(t *testing.T) {
+		var wg sync.WaitGroup
+		for i := 1; i <= 100; i++ {
+			wg.Go(func() {
+				time.Sleep(time.Duration(i) * time.Second)
+				t.Log("Inner bubble done")
+			})
+		}
+		synctest.Wait()
+		wg.Wait()
+		t.Log("Outer bubble done")
+	})
+
 }
 
 func TestSendRequest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		time.Sleep(26 * 365 * 24 * time.Hour) // sleep 26 year
 		synctest.Wait()
 		resp, err := SendRequestWithContext(t.Context(), "https://example.com", "GET", nil)
 		assert.NoError(t, err)
